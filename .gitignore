@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# Data files
+common_voice/
+workbook.ipynb
+asr_api_bkup.py

@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # (2e) ASR Service
+  asr-api:
+    build:
+      context: .
+      dockerfile: asr/Dockerfile
+    container_name: asr-api
+    ports:
+      - "8001:8001"
+    volumes:
+      - hf_models:/root/.cache
+    environment:
+      - HF_HOME=/root/.cache
+      - MODEL_ID=facebook/wav2vec2-large-960h
+    restart: unless-stopped
+
+  # (4c) Elasticsearch Node 1 (Elected Master)
+  es-node01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    container_name: es-node01
+    environment:
+      - node.name=es-node01
+      - cluster.name=asr-cluster
+      - node.master=true          
+      - discovery.seed_hosts=es-node02
+      - cluster.initial_master_nodes=es-node01
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-data01:/usr/share/elasticsearch/data
+    restart: unless-stopped
+
+  # (4c) Elasticsearch Node 2 (Data Node Only)
+  es-node02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    container_name: es-node02
+    environment:
+      - node.name=es-node02
+      - cluster.name=asr-cluster
+      - node.master=false
+      - discovery.seed_hosts=es-node01
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-data02:/usr/share/elasticsearch/data    
+    restart: unless-stopped
+
+  # (4d) Elastic Backend
+  elastic-backend:
+    build:
+      context: .
+      dockerfile: elastic-backend/Dockerfile
+    container_name: elastic-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - es-node01
+      - es-node02
+    environment:
+      - ES_HOST=http://es-node01:9200,http://es-node02:9200
+    volumes:
+      - ./common_voice:/app/common_voice
+    restart: unless-stopped
+
+  # (5b) Search UI Frontend                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+  search-ui:
+    image: docker.elastic.co/enterprise-search/search-ui:latest
+    container_name: search-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_SEARCH_ENDPOINT=http://localhost:9200 
+      - REACT_APP_SEARCH_INDEX=cv-transcriptions
+    depends_on:
+      - es-node01
+      - es-node02
+    restart: unless-stopped
+
+volumes:
+  hf_models: 
+  es-data01:
+  es-data02:

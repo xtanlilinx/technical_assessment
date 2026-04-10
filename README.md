@@ -30,3 +30,12 @@ python src/main.py
 ├── elastic-backend/
 └── search-ui/
 ```
+
+## Access
+
+| Component | URL |
+|-----------|-----|
+| ASR API | http://localhost:8001/asr |
+| Elastic Backend | http://localhost:8000 |
+| Elasticsearch | http://localhost:9200 |
+| Search UI | http://localhost:3000 |

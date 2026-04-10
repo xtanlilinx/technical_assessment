@@ -1,69 +1,135 @@
-import requests
-import pandas as pd
 import os
-from concurrent.futures import ThreadPoolExecutor
+import pandas as pd
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from mutagen.mp3 import MP3 
+from pathlib import Path
 
 
-def get_asr_api(audio_file_path):
-    """
-    Transcribe an audio file in asr_api.py and return the transcription and duration.
-    Args:
-        audio_file_path (str): The file path to the audio file to be transcribed.
-    Returns:
-        dict: A dictionary containing the audio_path, transcription and duration.
-    """
+# CONFIGURATION
+CONFIG = {
+    "data_root": "./common_voice",
+    "subfolder": "cv-valid-dev",
+    "csv_filename": "cv-valid-dev.csv",
+    "asr_api_url": "http://localhost:8001/asr",
+    "batch_size": 20, # Process files in batches
+    "max_audio_length": 30, # Long audios might be computationally expensive > to prevent OOMs errors, skip them and log as [TOO LONG]
+    "temp_log": "transcription_temp.csv" # Temporary file to store batch results before merging into master CSV
+}
+
+ROOT = Path(CONFIG["data_root"]).resolve()
+AUDIO_DIR = ROOT / CONFIG["subfolder"] / CONFIG["subfolder"]
+CSV_PATH = ROOT / CONFIG["csv_filename"]
+TEMP_PATH = Path(CONFIG["temp_log"])
+
+
+def get_asr_api():
+    """Creates a requests session with retry logic"""
+
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=5,
+        backoff_factor=3, # Exponential sleep: 3s, 9s, 27s...
+        status_forcelist=[429, 500, 502, 503, 504], # Retry on these HTTP status codes
+        allowed_methods=["POST"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+# Initialize session globally
+session = get_asr_api()
+
+def process_batch(file_batch_paths):
+    files_to_send = []
+    opened_files = []
+    batch_results = []
+    
+    for path in file_batch_paths:
+        fname = os.path.basename(path)
+        rel_path = f"{CONFIG['subfolder']}/{fname}"
         
-    url = "http://localhost:8001/asr"
-    
-    if not os.path.exists(audio_file_path):
-        return {"transcription": "File not found", "duration": "0", "audio_path": audio_file_path}
+        # Filter out long audio files before sending to API
+        try:
+            audio = MP3(path)
+            if audio.info.length > CONFIG["max_audio_length"]:
+                batch_results.append({"filename": rel_path, "generated_text": "[TOO LONG]"})
+                continue
+        except Exception:
+            batch_results.append({"filename": rel_path, "generated_text": "[CORRUPT]"})
+            continue
 
-    try:
-        with open(audio_file_path, "rb") as f:
-            # Use the actual filename from the path
-            fname = os.path.basename(audio_file_path)
-            audio_file = {"file": (fname, f, "audio/mpeg")}
-            response = requests.post(url, files=audio_file)
+        f = open(path, "rb")
+        opened_files.append(f)
+        files_to_send.append(("file", (fname, f, "audio/mpeg")))
 
-        if response.status_code == 200:
-            output = response.json()
-            # Clean up the audio_path to match your CSV 'filename' column
-            output["audio_path"] = f"cv-valid-dev/{fname}"
 
-            # print(f"Status Code: {response.status_code}")
-            # print(f"Response: {response.json()}")
-            return output
-        else:
-            return {"transcription": f"Error {response.status_code}", "duration": "0", "audio_path": f"cv-valid-dev/{fname}"}
-    
-    except Exception as e:
-        return {"transcription": f"Exception: {str(e)}", "duration": "0", "audio_path": f"cv-valid-dev/{fname}"}
-
+    # Send batch to ASR API with retries
+    if files_to_send:
+        try:
+            print(f"Sending batch of {len(files_to_send)} files to ASR API...")
+            response = session.post(CONFIG["asr_api_url"], files=files_to_send, timeout=(5, 120)) # timeout=(connect_timeout, read_timeout)
+            response.raise_for_status() # Raise exception for 4xx/5xx
+            
+            api_outputs = response.json()
+            if isinstance(api_outputs, dict): api_outputs = [api_outputs]
+            
+            for i, result in enumerate(api_outputs):
+                actual_fname = files_to_send[i][1][0]
+                batch_results.append({
+                    "filename": f"{CONFIG['subfolder']}/{actual_fname}",
+                    "generated_text": result.get("transcription", "")
+                })
+        except Exception as e:
+            print(f"Batch Request Failed: {e}")
+            # Log failed files as errors
+            for item in files_to_send:
+                batch_results.append({"filename": f"{CONFIG['subfolder']}/{item[1][0]}", "generated_text": "[API ERROR]"})
+        finally:
+            for f in opened_files: f.close()
+            
+    return batch_results
 
 
 if __name__ == "__main__":
 
-    # (2d) Process all audio files in the directory and update the CSV
-    audio_dir = "common_voice/cv-valid-dev/cv-valid-dev"
-    if not os.path.exists(audio_dir):
-        print(f"Directory {audio_dir} not found.")
-    else:
-        audio_files = [os.path.join(audio_dir, f) for f in os.listdir(audio_dir) if f.endswith(".mp3")]
-        print(f"Processing {len(audio_files)} files...")
+    # Gather all audio files in AUDIO_DIR
+    audio_files = [os.path.join(AUDIO_DIR, f) for f in os.listdir(AUDIO_DIR) if f.endswith(".mp3")]
+    
+    # Processing Loop
+    print(f"Transcribing {len(audio_files)} files...")
+    for i in range(0, len(audio_files), CONFIG["batch_size"]):
+        batch = audio_files[i : i + CONFIG["batch_size"]]
+        results = process_batch(batch)
         
-        # This sends 5 files to the server simultaneously
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            results = list(executor.map(get_asr_api, audio_files))
-        results_df = pd.DataFrame(results)
+        if results:
+            # Intermediate logging to CSV
+            batch_df = pd.DataFrame(results)
+            write_header = not TEMP_PATH.exists()
+            batch_df.to_csv(TEMP_PATH, mode='a', header=write_header, index=False)
+        print(f"Batch {i//CONFIG['batch_size'] + 1} logged.")
 
-        if not results_df.empty:
-            results_df = results_df[['audio_path', 'transcription']].rename(columns={'transcription': 'generated_text'})
-            
-            fp = "common_voice/cv-valid-dev.csv"
-            original_df = pd.read_csv(fp)
-            
-            merged_df = pd.merge(original_df, results_df, left_on="filename", right_on="audio_path", how="inner").drop(columns=["audio_path"])
-            merged_df.to_csv(fp, index=False)
-            print(f"Successfully updated {fp}")
-        else:
-            print("No results to write.")
+    # Merge into Master CSV
+    if TEMP_PATH.exists():
+        print("Merging transcriptions into master CSV...")
+        master_df = pd.read_csv(CSV_PATH)
+        temp_df = pd.read_csv(TEMP_PATH)
+        
+        # Merge the new column 'generated_text' onto the original CSV based on 'filename'
+        final_df = pd.merge(master_df, temp_df, on="filename", how="left")
+        
+        # Save file
+        final_df.to_csv(CSV_PATH, index=False)
+        print(f"Master file {CONFIG['csv_filename']} updated.")
+
+        # Delete the temporary file
+        os.remove(TEMP_PATH)
+        print(f"Temporary file {CONFIG['temp_log']} deleted.")
+    else:
+        print("No transcriptions were generated.")
+
+
+# Test
+# python -m cv-decode

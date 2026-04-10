@@ -1,9 +1,13 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+from typing import List
 import torch
-import librosa
+import torchaudio
+import torchaudio.transforms as T
 import uvicorn
 import io
+import os
+
 
 app = FastAPI()
 
@@ -13,46 +17,67 @@ async def ping():
     return {"message": "pong"}
 
 # (2c) Load model and processor once when starting the API
-MODEL_ID = "facebook/wav2vec2-large-960h"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+MODEL_ID = os.getenv("MODEL_ID", "facebook/wav2vec2-large-960h")
 processor = Wav2Vec2Processor.from_pretrained(MODEL_ID)
-model = Wav2Vec2ForCTC.from_pretrained(MODEL_ID)
+model = Wav2Vec2ForCTC.from_pretrained(MODEL_ID).to(DEVICE)
+
 
 @app.post("/asr")
-async def transcribe(file: UploadFile = File(...)):
+async def transcribe(file: List[UploadFile] = File(...)):
     """
-    Endpoint to receive an audio file, transcribe it using the Wav2Vec2 model, and return the transcription and duration.
-    Args:
-        file (UploadFile): The uploaded audio file.
-    Returns:
-        dict: A dictionary containing the transcription and duration.
+    Bulk ASR Endpoint: Accepts multiple files under the 'file' key.
+    Args:        
+        file (List[UploadFile]): A list of uploaded audio files.
+    Returns:        
+        List[dict]: 
+        A list of dictionaries, each containing the transcription and duration for the corresponding audio file.
+        If only one file is sent, returns a single dictionary instead of a list.
     """
-    
     try:
-        # 1. Read the uploaded file into memory
-        audio_content = await file.read()
+        speeches = []
+        durations = []
         
-        # 2. Use io.BytesIO so librosa can read from memory
-        speech, sr = librosa.load(io.BytesIO(audio_content), sr=16000)
+        # Process all uploaded files into memory
+        for uploaded_file in file:
+            audio_content = await uploaded_file.read()
+            # Load into a tensor and preprocess
+            waveform, sample_rate = torchaudio.load(io.BytesIO(audio_content), format="mp3")
+
+            # Resample to 16kHz if necessary
+            if sample_rate != 16000:
+                resampler = T.Resample(sample_rate, 16000)
+                waveform = resampler(waveform)
+
+            # Convert to mono (average across channels) to match Wav2Vec2's expected input shape
+            if waveform.shape[0] > 1:
+                waveform = torch.mean(waveform, dim=0, keepdim=True)
+            # Wav2Vec2 expects a 1D array
+            speech = waveform.squeeze().numpy()
+            
+            speeches.append(speech)
+            durations.append(len(speech) / 16000)
+
+        # Batch preprocessing (padding=True handles different lengths)
+        inputs = processor(speeches, return_tensors="pt", padding=True, sampling_rate=16000).to(DEVICE)
         
-        # 3. Calculate duration
-        duration_seconds = len(speech) / sr
-        
-        # 4. Preprocess the audio for the model - this will handle padding and sampling rate
-        input_values = processor(speech, return_tensors="pt", sampling_rate=sr).input_values
-        # 5. Inference with no_grad for efficiency 
+        # Batch Inference
         with torch.no_grad():
-            # 6. Get logits and decode to predicted token IDs
-            logits = model(input_values).logits
+            logits = model(inputs.input_values).logits
         
-        # 7. Decode the predicted token IDs to text 
+        # Batch Decode
         predicted_ids = torch.argmax(logits, dim=-1)
-        # 8. Decode to transcription
-        transcription = processor.batch_decode(predicted_ids)[0]
-        
-        return {
-                    "transcription": transcription,
-                    "duration": f"{duration_seconds:.1f}"
-                }
+        transcriptions = processor.batch_decode(predicted_ids)
+
+        # Output
+        output = []
+        for i in range(len(transcriptions)):
+            output.append({
+                "transcription": transcriptions[i],
+                "duration": f"{durations[i]:.1f}"
+            })
+        # If only one file was sent, return just the dict instead of a list
+        return output if len(output) > 1 else output[0]
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -61,7 +86,10 @@ async def transcribe(file: UploadFile = File(...)):
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001) 
 
+# Test the API (adjust file path to your local audio file)
+# curl -X POST http://localhost:8001/asr -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000000.mp3"
 
-
-# Test the API with curl (adjust file path to your local audio file)
-# curl -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000000.mp3" http://localhost:8001/asr
+# curl -X POST http://localhost:8001/asr
+#   -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000000.mp3"
+#   -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000001.mp3"
+#   -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000002.mp3"

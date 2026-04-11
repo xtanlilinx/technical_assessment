@@ -6,7 +6,7 @@ from elasticsearch import Elasticsearch, helpers
 
 # CONFIGURATION (Change here if needed)
 CONFIG = {
-    "data_root": "./common_voice",
+    "data_root": "./asr",
     "csv_filename": "cv-valid-dev.csv",
     "es_host": os.getenv("ES_HOST", "http://localhost:9200"),
     "es_index": "cv-transcriptions"

@@ -5,7 +5,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from mutagen.mp3 import MP3 
 from pathlib import Path
-
+import time
+import subprocess 
 
 # CONFIGURATION
 CONFIG = {
@@ -13,15 +14,33 @@ CONFIG = {
     "subfolder": "cv-valid-dev",
     "csv_filename": "cv-valid-dev.csv",
     "asr_api_url": "http://localhost:8001/asr",
-    "batch_size": 20, # Process files in batches
+    "batch_size": 10, # Process files in batches
     "max_audio_length": 30, # Long audios might be computationally expensive > to prevent OOMs errors, skip them and log as [TOO LONG]
     "temp_log": "transcription_temp.csv" # Temporary file to store batch results before merging into master CSV
 }
 
 ROOT = Path(CONFIG["data_root"]).resolve()
 AUDIO_DIR = ROOT / CONFIG["subfolder"] / CONFIG["subfolder"]
-CSV_PATH = ROOT / CONFIG["csv_filename"]
+CSV_PATH = Path(CONFIG["csv_filename"])
 TEMP_PATH = Path(CONFIG["temp_log"])
+
+
+# def ensure_api_is_running():
+#     """Checks if the Docker container is running; starts it if not."""
+#     try:
+#         # Check current status using docker inspect
+#         status = subprocess.check_output(
+#             f'docker inspect -f "{{{{.State.Running}}}}" {CONFIG["asr_container_name"]}', 
+#             shell=True
+#         ).decode().strip()
+        
+#         if status == 'false':
+#             print(f"Container {CONFIG['asr_container_name']} is stopped. Restarting...")
+#             subprocess.run(f"docker start {CONFIG['asr_container_name']}", shell=True)
+#             print("Waiting 10s for API to warm up...")
+#             time.sleep(10)
+#     except Exception as e:
+#         print(f"Docker check failed: {e}. Check if Docker Desktop is running.")
 
 
 def get_asr_api():
@@ -70,7 +89,7 @@ def process_batch(file_batch_paths):
     if files_to_send:
         try:
             print(f"Sending batch of {len(files_to_send)} files to ASR API...")
-            response = session.post(CONFIG["asr_api_url"], files=files_to_send, timeout=(5, 120)) # timeout=(connect_timeout, read_timeout)
+            response = session.post(CONFIG["asr_api_url"], files=files_to_send, timeout=(5, 300)) # timeout=(connect_timeout, read_timeout)
             response.raise_for_status() # Raise exception for 4xx/5xx
             
             api_outputs = response.json()

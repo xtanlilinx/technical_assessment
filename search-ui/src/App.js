@@ -2,7 +2,8 @@ import React from "react";
 import ElasticsearchConnector from "@elastic/search-ui-elasticsearch-connector";
 import { 
   SearchProvider, 
-  Results, 
+  Results,
+  WithSearch,
   SearchBox, 
   Paging, 
   Facet 
@@ -18,7 +19,8 @@ const connector = new ElasticsearchConnector({
 
 // Configure the Search Logic
 const config = {
-  connector,
+  apiConnector: connector,
+  alwaysSearchOnInitialLoad: true, 
   searchQuery: {
     // Fields searchable via the Search Box
     search_fields: {
@@ -37,23 +39,20 @@ const config = {
       accent: { raw: {} },
       filename: { raw: {} }
     },
-    // Filters (Facets)
+    // Facets for filtering results
     facets: {
-      age: { 
-        type: "value",
-        size: 10
-      },
-      gender: { 
-        type: "value", 
-        sort: "count",
-        min_count: 1 
-      },
-      accent: { 
-        type: "value", 
-        limit: 10,
-        searchable: true
+      "age.keyword": { type: "value" }, 
+      "gender.keyword": { type: "value" },
+      "accent.keyword": { type: "value" },
+      "duration.keyword": { type: "value" }
+    },
+    // Ensure default sorting doesn't hit a 'text' field
+    sortList: [
+      {
+        field: "_score",
+        direction: "desc"
       }
-    }
+    ]
   }
 };
 
@@ -65,10 +64,10 @@ export default function App() {
           header={<SearchBox debounceLength={300} />}
           sideContent={
             <>
-              <Facet field="gender" label="Gender" filterType="any" />
-              <Facet field="accent" label="Accent" filterType="any" />
-              <Facet field="age" label="Age Group" filterType="any" />
-              <Facet field="duration" label="Duration" />
+              <Facet field="gender.keyword" label="Gender" filterType="any" />
+              <Facet field="accent.keyword" label="Accent" filterType="any" />
+              <Facet field="age.keyword" label="Age Group" filterType="any" />
+              <Facet field="duration.keyword" label="Duration" filterType="any" />
             </>
           }
           bodyContent={

@@ -5,8 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY asr/cv-valid-dev.csv ./asr/cv-valid-dev.csv
+COPY elastic-backend/ ./elastic-backend/
 
-EXPOSE 8000
-
-CMD ["python", "cv-index.py"]
+CMD ["python", "elastic-backend/cv-index.py"]

@@ -1,25 +1,25 @@
-version: '3.8'
-
 services:
-  # (2e) ASR Service
-  asr-api:
-    build:
-      context: .
-      dockerfile: asr/Dockerfile
-    container_name: asr-api
-    ports:
-      - "8001:8001"
-    volumes:
-      - hf_models:/root/.cache
-    environment:
-      - HF_HOME=/root/.cache
-      - MODEL_ID=facebook/wav2vec2-large-960h
-    restart: unless-stopped
+  # # (2e) ASR Service
+  # asr-api:
+  #   build:
+  #     context: .
+  #     dockerfile: asr/Dockerfile
+  #   container_name: asr-api
+  #   ports:
+  #     - "8001:8001"
+  #   volumes:
+  #     - hf_models:/root/.cache
+  #   environment:
+  #     - HF_HOME=/root/.cache
+  #     - MODEL_ID=facebook/wav2vec2-large-960h
+  #   restart: unless-stopped
 
   # (4c) Elasticsearch Node 1 (Elected Master)
   es-node01:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
     container_name: es-node01
+    ports:
+      - "9200:9200"
     environment:
       - node.name=es-node01
       - cluster.name=asr-cluster
@@ -29,6 +29,9 @@ services:
       - bootstrap.memory_lock=true
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - xpack.security.enabled=false
+      - http.cors.enabled=true
+      - http.cors.allow-methods=OPTIONS, HEAD, GET, POST, PUT, DELETE
+      - http.cors.allow-headers=Content-Type, Content-Length, Authorization, X-Requested-With, x-elastic-client-meta
     ulimits:
       memlock:
         soft: -1
@@ -36,11 +39,18 @@ services:
     volumes:
       - es-data01:/usr/share/elasticsearch/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   # (4c) Elasticsearch Node 2 (Data Node Only)
   es-node02:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
     container_name: es-node02
+    # ports:
+    #   - "9200:9200"
     environment:
       - node.name=es-node02
       - cluster.name=asr-cluster
@@ -49,6 +59,9 @@ services:
       - bootstrap.memory_lock=true
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - xpack.security.enabled=false
+      - http.cors.enabled=true
+      - http.cors.allow-methods=OPTIONS, HEAD, GET, POST, PUT, DELETE
+      - http.cors.allow-headers=Content-Type, Content-Length, Authorization, X-Requested-With, x-elastic-client-meta
     ulimits:
       memlock:
         soft: -1
@@ -63,33 +76,39 @@ services:
       context: .
       dockerfile: elastic-backend/Dockerfile
     container_name: elastic-backend
-    ports:
-      - "8000:8000"
     depends_on:
-      - es-node01
-      - es-node02
+      es-node01:
+        condition: service_healthy
+      es-node02:
+        condition: service_started
     environment:
       - ES_HOST=http://es-node01:9200,http://es-node02:9200
     volumes:
       - ./common_voice:/app/common_voice
-    restart: unless-stopped
+    restart: no
 
-  # (5b) Search UI Frontend                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
-  search-ui:
-    image: docker.elastic.co/enterprise-search/search-ui:latest
-    container_name: search-ui
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - REACT_APP_SEARCH_ENDPOINT=http://localhost:9200 
-      - REACT_APP_SEARCH_INDEX=cv-transcriptions
-    depends_on:
-      - es-node01
-      - es-node02
-    restart: unless-stopped
+  # # (5b) Search UI Frontend                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+  # search-ui:
+  #   build:
+  #     context: .
+  #     dockerfile: search-ui/Dockerfile
+  #   container_name: search-ui
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - REACT_APP_SEARCH_ENDPOINT=http://localhost:9200 
+  #     - REACT_APP_SEARCH_INDEX=cv-transcriptions
+  #   depends_on:
+  #     - es-node01
+  #     - es-node02
+  #   restart: unless-stopped
 
 volumes:
   hf_models: 
   es-data01:
   es-data02:
+
+
+  # ssh -i "little-cow.pem" ubuntu@1.2.3.4
+  # Successfully initiated launch of instance (i-01b1ab97e36338605)

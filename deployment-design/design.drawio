@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Page-1" id="5qFrPKliz_L-BMGW2ngX">
-    <mxGraphModel dx="3605" dy="1580" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="3526" dy="1495" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -34,7 +34,7 @@
           <mxGeometry height="50" width="46" x="-21" y="190" as="geometry" />
         </mxCell>
         <mxCell id="8uQ9Yq1CoSNrACP0R96L-8" connectable="0" parent="1" style="group;fillColor=none;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
-          <mxGeometry height="970" width="1402" x="-480" y="370" as="geometry" />
+          <mxGeometry height="970" width="1402" x="-460" y="390" as="geometry" />
         </mxCell>
         <mxCell id="8uQ9Yq1CoSNrACP0R96L-10" connectable="0" parent="8uQ9Yq1CoSNrACP0R96L-8" style="group;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
           <mxGeometry height="900" width="1402" as="geometry" />
@@ -78,7 +78,7 @@
         <mxCell id="8uQ9Yq1CoSNrACP0R96L-16" parent="8uQ9Yq1CoSNrACP0R96L-22" style="rounded=1;arcSize=10;dashed=0;fillColor=none;gradientColor=none;strokeWidth=2;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
           <mxGeometry height="470.7843137254902" width="910" as="geometry" />
         </mxCell>
-        <mxCell id="8uQ9Yq1CoSNrACP0R96L-18" parent="8uQ9Yq1CoSNrACP0R96L-22" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="&lt;b&gt;&lt;font style=&quot;font-size: 25px;&quot;&gt;EC2 Instance - t3.medium (Amazon Linux 2023)&lt;/font&gt;&lt;/b&gt;" vertex="1">
+        <mxCell id="8uQ9Yq1CoSNrACP0R96L-18" parent="8uQ9Yq1CoSNrACP0R96L-22" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="&lt;b&gt;&lt;font style=&quot;font-size: 25px;&quot;&gt;EC2 Instance - t2.large (Ubuntu)&lt;/font&gt;&lt;/b&gt;" vertex="1">
           <mxGeometry height="41.99057354471445" width="600" x="70" y="8.888004733631226" as="geometry" />
         </mxCell>
         <mxCell id="8uQ9Yq1CoSNrACP0R96L-35" connectable="0" parent="8uQ9Yq1CoSNrACP0R96L-8" style="group;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">

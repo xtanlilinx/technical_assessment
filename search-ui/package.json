@@ -1,0 +1,38 @@
+{
+  "name": "search-ui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/App.js",
+
+  "dependencies": {
+    "@elastic/react-search-ui": "^1.24.2",
+    "@elastic/react-search-ui-views": "^1.24.2",
+    "@elastic/search-ui-elasticsearch-connector": "^1.24.2",
+    "react": "^18.2.0", 
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1" 
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

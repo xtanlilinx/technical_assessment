@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Data 
+asr/common_voice/
+*.mp3
+*.wav
+
+# Python
+asr/__pycache__/
+asr/*.pyc
+asr/*.pyo
+asr/*.pyd
+asr/.Python
+asr/env/
+asr/venv/
+asr/.venv/
+asr/pip-log.txt
+asr/.pytest_cache/
+
+# Jupyter
+asr/.ipynb_checkpoints/
+asr/workbook.ipynb
+
+# Docker/System
+docker-compose.yml
+.DS_Store
+Thumbs.db
+
+# Misc
+README.md
+
+# Node / React
+search-ui/node_modules/
+search-ui/build/
+search-ui/dist/
+search-ui/npm-debug.log*
+search-ui/.env

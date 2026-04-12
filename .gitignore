@@ -135,7 +135,4 @@ search-ui/build/
 
 # Data files
 common_voice/
-asr_api_bkup.py
-deployment-design/design.drawio
-essay.txt
 draft.docx

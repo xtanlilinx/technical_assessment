@@ -3,7 +3,6 @@ import ElasticsearchConnector from "@elastic/search-ui-elasticsearch-connector";
 import { 
   SearchProvider, 
   Results,
-  WithSearch,
   SearchBox, 
   Paging, 
   Facet 
@@ -13,11 +12,13 @@ import "@elastic/react-search-ui-views/lib/styles/styles.css";
 
 // Configure the Elasticsearch Connector
 const connector = new ElasticsearchConnector({
-  host: "http://localhost:9200", 
+  // Fallback to localhost if the variable isn't set
+  host: process.env.REACT_APP_SEARCH_ENDPOINT || "http://localhost:9200", 
   index: "cv-transcriptions"
 });
 
-// Configure the Search Logic
+
+// (5c) Configure the Search Logic
 const config = {
   apiConnector: connector,
   alwaysSearchOnInitialLoad: true, 

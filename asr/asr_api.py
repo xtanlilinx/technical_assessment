@@ -85,11 +85,3 @@ async def transcribe(file: List[UploadFile] = File(...)):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001) 
-
-# Test the API (adjust file path to your local audio file)
-# curl -X POST http://localhost:8001/asr -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000000.mp3"
-
-# curl -X POST http://localhost:8001/asr
-#   -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000000.mp3"
-#   -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000001.mp3"
-#   -F "file=@C:\Users\xtanl\OneDrive\Desktop\technical_assessment\asr\common_voice\cv-valid-dev\cv-valid-dev\sample-000002.mp3"

@@ -26,6 +26,7 @@ TEMP_PATH = Path(CONFIG["temp_log"])
 
 
 def get_asr_api():
+    
     """Creates a requests session with retry logic"""
 
     session = requests.Session()
@@ -44,6 +45,9 @@ def get_asr_api():
 session = get_asr_api()
 
 def process_batch(file_batch_paths):
+    
+    """Processes a batch of audio files: filters out long/corrupt files, sends valid ones to ASR API, and collects results."""
+
     files_to_send = []
     opened_files = []
     batch_results = []

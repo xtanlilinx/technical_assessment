@@ -19,7 +19,13 @@ es = Elasticsearch(connection_pool, request_timeout=30)
 
 
 def create_index_with_mapping():
-    
+
+    """
+    Creates an Elasticsearch index with a mapping that includes multi-field definitions for text fields to support both full-text search and keyword-based aggregations.
+    If the index already exists, it will be deleted and recreated with the new mapping.
+    This function ensures that the 'generated_text', 'filename', 'gender', 'accent', 'age', and 'duration' fields are properly indexed for efficient searching and faceting.
+    """
+
     if es.indices.exists(index=CONFIG["es_index"]):
         es.indices.delete(index=CONFIG["es_index"])
         print(f"Deleted old index: {CONFIG['es_index']}")
@@ -55,6 +61,13 @@ def create_index_with_mapping():
 
 # (4e) Index files in Elasticsearch
 def index_csv(file_path):
+
+    """
+    Indexes records from a CSV file into Elasticsearch using bulk API.
+    Args:        
+        file_path (Path): The path to the CSV file containing the records to be indexed.
+    """
+
     if not file_path.exists():
         print(f"Error: CSV not found at {file_path}")
         return

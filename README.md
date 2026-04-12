@@ -31,7 +31,7 @@ docker build -t asr-api -f asr/Dockerfile .
 docker run -p 8001:8001 asr-api 
 
 # Single file load
-curl -X POST http://localhost:8001/asr -F "file=@<path-to-audio-files>\common_voice\cv-valid-dev\cv-valid-dev\sample-000000.mp3"
+curl -X POST http://localhost:8001/asr -F "file=@C:<path-to-audio-files>\common_voice\cv-valid-dev\cv-valid-dev\sample-000000.mp3"
 
 # Multiple file load
 curl -X POST http://localhost:8001/asr

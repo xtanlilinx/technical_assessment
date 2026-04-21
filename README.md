@@ -10,7 +10,7 @@ A containerised ASR search platform featuring an Elasticsearch cluster and React
 
 | URL |   Status   | History |
 | --- | ---------- | ------- |
-| <img alt="" src="https://duckduckgo.com" height="13"> [EC2 - Search UI](http://ec2-13-250-112-203.ap-southeast-1.compute.amazonaws.com:3000) | ![Status](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxtanlilinx%2Fstatus-page%2Frefs%2Fheads%2Fmaster%2Fhistory%2Fec-2-ta.yml&query=%24.status&label=Status&color&style=for-the-badge) | [Last Checked](https://github.com/xtanlilinx/status-page/commits/HEAD/history/ec-2-ta.yml) |
+| <img alt="" src="https://duckduckgo.com" height="13"> [EC2 - Search UI](http://ec2-13-215-178-217.ap-southeast-1.compute.amazonaws.com:3000) | ![Status](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fxtanlilinx%2Fstatus-page%2Frefs%2Fheads%2Fmaster%2Fhistory%2Fec-2-ta.yml&query=%24.status&label=Status&color&style=for-the-badge) | [Last Checked](https://github.com/xtanlilinx/status-page/commits/HEAD/history/ec-2-ta.yml) |
 
 ## Getting started
 #### 1. Local Environment Setup  
